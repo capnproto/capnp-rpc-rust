@@ -18,6 +18,7 @@ capnp = "0.8"
 futures = "0.1"
 tokio-core = "0.1"
 tokio-io = "0.1"
+futures-await = {git = "https://github.com/alexcrichton/futures-await"}
 
 [dependencies.capnp-rpc]
 path = "../.."

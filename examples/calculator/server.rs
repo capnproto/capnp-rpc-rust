@@ -27,7 +27,7 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use calculator_capnp::calculator;
 use capnp::capability::Promise;
 
-use futures::{Future, Stream};
+use futures::prelude::*;
 use tokio_io::{AsyncRead};
 
 struct ValueImpl {
@@ -60,9 +60,10 @@ fn evaluate_impl(expression: calculator::expression::Reader,
             Promise::ok(v)
         },
         calculator::expression::PreviousResult(p) => {
-            Promise::from_future(pry!(p).read_request().send().promise.and_then(|v| {
+            Promise::from_future(async_block! {
+                let v = await!(p?.read_request().send().promise)?;
                 Ok(try!(v.get()).get_value())
-            }))
+            })
         }
         calculator::expression::Parameter(p) => {
             match params {
@@ -81,7 +82,8 @@ fn evaluate_impl(expression: calculator::expression::Reader,
             // XXX shouldn't need to collect()
             // see https://github.com/alexcrichton/futures-rs/issues/285
 
-            Promise::from_future(::futures::future::join_all(param_promises).and_then(move |param_values| {
+            Promise::from_future(async_block! {
+                let param_values = await!(::futures::future::join_all(param_promises))?;
                 let mut request = func.call_request();
                 {
                     let mut params = request.get().init_params(param_values.len() as u32);
@@ -89,10 +91,9 @@ fn evaluate_impl(expression: calculator::expression::Reader,
                         params.set(ii as u32, param_values[ii]);
                     }
                 }
-                request.send().promise.and_then(|result| {
-                    Ok(try!(result.get()).get_value())
-                })
-            }))
+                let result = await!(request.send().promise)?;
+                Ok(try!(result.get()).get_value())
+            })
         }
     }
 }
