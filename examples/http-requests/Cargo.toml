@@ -19,6 +19,7 @@ tokio-io = "0.1"
 tokio-core = "0.1"
 tokio-curl = "0.1"
 curl = "0.4"
+futures-await = {git = "https://github.com/alexcrichton/futures-await"}
 
 [dependencies.capnp-rpc]
 path = "../.."

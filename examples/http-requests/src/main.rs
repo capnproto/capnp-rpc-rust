@@ -18,9 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#![feature(proc_macro, conservative_impl_trait, generators)]
+
+extern crate futures_await as futures;
+
 extern crate capnp;
 #[macro_use] extern crate capnp_rpc;
-extern crate futures;
+//extern crate futures;
 extern crate tokio_io;
 extern crate tokio_core;
 extern crate tokio_curl;

@@ -25,7 +25,8 @@ use http_capnp::{outgoing_http, http_session};
 use capnp::capability::Promise;
 use capnp::Error;
 
-use futures::{Future, Stream};
+//use futures::{Future, Stream};
+use futures::prelude::*;
 
 use tokio_core::reactor;
 use tokio_io::AsyncRead;
@@ -102,17 +103,16 @@ impl http_session::Server for HttpSession {
             Ok(data.len())
         }).map_err(from_curl_error));
 
-        Promise::from_future(
-            self.session.perform(easy).map_err(from_perform_error).and_then(|mut response| {
-                response.response_code().map_err(from_curl_error)
-            }).and_then(move |code| {
-                results.get().set_response_code(code);
-                stream.collect().and_then(move |writes| {
-                    results.get().set_body(
-                        &writes.concat());
-                    Ok(())
-                }).map_err(|()| unreachable!())
-            }))
+        let response_future = self.session.perform(easy).map_err(from_perform_error);
+        Promise::from_future(async_block! {
+            let mut response = await!(response_future)?;
+            let code = response.response_code().map_err(from_curl_error)?;
+            drop(response);
+            results.get().set_response_code(code);
+            let writes = await!(stream.collect()).map_err(|()| -> ::capnp::Error {unreachable!()})?;
+            results.get().set_body(&writes.concat());
+            Ok(())
+        })
     }
 
     fn post(
